@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 
 from cryptography.hazmat.primitives.asymmetric.types import PrivateKeyTypes
 
-from digital_signatures.utils.hash_generator import HashGenerator
+from digital_signatures.utils.hasher import Hasher
 
 class Signer(ABC):
   """This class is responsible for signing a message."""
@@ -10,12 +10,12 @@ class Signer(ABC):
   private_key: PrivateKeyTypes
   """The private key to use for signing."""
 
-  hash_generator: HashGenerator
-  """The hash generator to generate the hash of the message."""
+  hasher: Hasher
+  """The hasher to generate the hash of the message."""
 
-  def __init__(self, private_key: PrivateKeyTypes, hash_generator: HashGenerator):
+  def __init__(self, private_key: PrivateKeyTypes, hash_generator: Hasher):
     self.private_key = private_key
-    self.hash_generator = hash_generator
+    self.hasher = hash_generator
 
   @abstractmethod
   def sign(self, message: str | bytes) -> bytes:

@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 
 from cryptography.hazmat.primitives.asymmetric.types import PublicKeyTypes
 
-from digital_signatures.utils.hash_generator import HashGenerator
+from digital_signatures.utils.hasher import Hasher
 
 class Verifier(ABC):
   """This class is responsible for verifying a message."""
@@ -10,8 +10,8 @@ class Verifier(ABC):
   public_key: PublicKeyTypes
   """The public key to use for verifying the message."""
 
-  hash_generator: HashGenerator
-  """The hash generator to generate the hash of the message."""
+  hasher: Hasher
+  """The hasher to generate the hash of the message."""
   
   @abstractmethod
   def verify(self, signature: bytes, message: bytes) -> bool:

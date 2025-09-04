@@ -2,8 +2,8 @@ import os
 
 from cryptography.hazmat.primitives import hashes
 
-class HashGenerator:
-  """This class is responsible for generating the hash."""
+class Hasher:
+  """This class is responsible for hashing the message."""
 
   algorithm: hashes.HashAlgorithm
   """The hashing algorithm to use."""
@@ -14,7 +14,7 @@ class HashGenerator:
   def __init__(self, algorithm: hashes.HashAlgorithm):
     self.algorithm = algorithm
 
-  def generate(self, message: str | bytes) -> bytes:
+  def hash(self, message: str | bytes) -> bytes:
     """Generate the hash from the message."""
 
     # Handle bytes message.

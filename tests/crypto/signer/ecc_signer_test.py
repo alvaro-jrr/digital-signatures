@@ -3,7 +3,7 @@ from cryptography.hazmat.primitives.asymmetric import ec, utils
 import pytest
 
 from digital_signatures.crypto.signer.ecc_signer import EccSigner
-from digital_signatures.utils.hash_generator import HashGenerator
+from digital_signatures.utils.hasher import Hasher
 from tests.fixtures.utils import fixture
 
 
@@ -16,10 +16,10 @@ class TestEccSigner:
         self.private_key = ec.generate_private_key(ec.SECP256R1())
         
         # Create hash generator with SHA256
-        self.hash_generator = HashGenerator(hashes.SHA256())
+        self.hasher = Hasher(hashes.SHA256())
         
         # Create EccSigner instance
-        self.signer = EccSigner(self.private_key, self.hash_generator)
+        self.signer = EccSigner(self.private_key, self.hasher)
         
         # Test messages
         self.str_message = "Hello, world!"
@@ -28,10 +28,10 @@ class TestEccSigner:
 
     def test_init_with_valid_parameters(self):
         """Test that EccSigner initializes correctly with valid parameters."""
-        signer = EccSigner(self.private_key, self.hash_generator)
+        signer = EccSigner(self.private_key, self.hasher)
         
         assert signer.private_key == self.private_key
-        assert signer.hash_generator == self.hash_generator
+        assert signer.hasher == self.hasher
 
     def test_init_with_invalid_private_key_type(self):
         """Test that EccSigner only accepts ECC private keys."""
@@ -46,7 +46,7 @@ class TestEccSigner:
         
         # EccSigner should raise an error if the private key is not an ECC private key.
         with pytest.raises(ValueError):
-            EccSigner(rsa_private_key, self.hash_generator)
+            EccSigner(rsa_private_key, self.hasher)
 
     def test_sign_with_bytes_message(self):
         """Test signing a bytes message."""
@@ -58,9 +58,9 @@ class TestEccSigner:
         
         # Verify the signature using the public key
         public_key = self.private_key.public_key()
-        message_digest = self.hash_generator.generate(self.bytes_message)
+        message_digest = self.hasher.hash(self.bytes_message)
         
-        public_key.verify(signature, message_digest, ec.ECDSA(utils.Prehashed(self.hash_generator.algorithm)))
+        public_key.verify(signature, message_digest, ec.ECDSA(utils.Prehashed(self.hasher.algorithm)))
 
     def test_sign_with_string_message(self):
         """Test signing a string message."""
@@ -72,9 +72,9 @@ class TestEccSigner:
         
         # Verify the signature using the public key
         public_key = self.private_key.public_key()
-        message_digest = self.hash_generator.generate(self.str_message)
+        message_digest = self.hasher.hash(self.str_message)
         
-        public_key.verify(signature, message_digest, ec.ECDSA(utils.Prehashed(self.hash_generator.algorithm)))
+        public_key.verify(signature, message_digest, ec.ECDSA(utils.Prehashed(self.hasher.algorithm)))
 
     def test_sign_with_file_message(self):
         """Test signing a file message."""
@@ -86,9 +86,9 @@ class TestEccSigner:
         
         # Verify the signature using the public key
         public_key = self.private_key.public_key()
-        message_digest = self.hash_generator.generate(self.file_path)
+        message_digest = self.hasher.hash(self.file_path)
         
-        public_key.verify(signature, message_digest, ec.ECDSA(utils.Prehashed(self.hash_generator.algorithm)))
+        public_key.verify(signature, message_digest, ec.ECDSA(utils.Prehashed(self.hasher.algorithm)))
 
     def test_sign_with_empty_message(self):
         """Test signing an empty message."""
@@ -101,9 +101,9 @@ class TestEccSigner:
         
         # Verify the signature using the public key
         public_key = self.private_key.public_key()
-        message_digest = self.hash_generator.generate(empty_message)
+        message_digest = self.hasher.hash(empty_message)
         
-        public_key.verify(signature, message_digest, ec.ECDSA(utils.Prehashed(self.hash_generator.algorithm)))
+        public_key.verify(signature, message_digest, ec.ECDSA(utils.Prehashed(self.hasher.algorithm)))
 
     def test_sign_with_large_message(self):
         """Test signing a large message."""
@@ -116,9 +116,9 @@ class TestEccSigner:
         
         # Verify the signature using the public key
         public_key = self.private_key.public_key()
-        message_digest = self.hash_generator.generate(large_message)
+        message_digest = self.hasher.hash(large_message)
         
-        public_key.verify(signature, message_digest, ec.ECDSA(utils.Prehashed(self.hash_generator.algorithm)))
+        public_key.verify(signature, message_digest, ec.ECDSA(utils.Prehashed(self.hasher.algorithm)))
 
     def test_sign_consistency(self):
         """Test that signing the same message multiple times produces valid signatures."""
@@ -133,10 +133,10 @@ class TestEccSigner:
         
         # Both signatures should verify correctly
         public_key = self.private_key.public_key()
-        message_digest = self.hash_generator.generate(self.bytes_message)
+        message_digest = self.hasher.hash(self.bytes_message)
         
-        public_key.verify(signature1, message_digest, ec.ECDSA(utils.Prehashed(self.hash_generator.algorithm)))
-        public_key.verify(signature2, message_digest, ec.ECDSA(utils.Prehashed(self.hash_generator.algorithm)))
+        public_key.verify(signature1, message_digest, ec.ECDSA(utils.Prehashed(self.hasher.algorithm)))
+        public_key.verify(signature2, message_digest, ec.ECDSA(utils.Prehashed(self.hasher.algorithm)))
 
     def test_sign_different_messages_produce_different_signatures(self):
         """Test that different messages produce different signatures."""
@@ -152,7 +152,7 @@ class TestEccSigner:
     def test_sign_with_different_hash_algorithms(self):
         """Test signing with different hash algorithms."""
         # Test with SHA384
-        sha384_generator = HashGenerator(hashes.SHA384())
+        sha384_generator = Hasher(hashes.SHA384())
         sha384_signer = EccSigner(self.private_key, sha384_generator)
         
         signature = sha384_signer.sign(self.bytes_message)
@@ -161,7 +161,7 @@ class TestEccSigner:
         
         # Verify the signature
         public_key = self.private_key.public_key()
-        message_digest = sha384_generator.generate(self.bytes_message)
+        message_digest = sha384_generator.hash(self.bytes_message)
         
         public_key.verify(signature, message_digest, ec.ECDSA(utils.Prehashed(sha384_generator.algorithm)))
 
@@ -169,7 +169,7 @@ class TestEccSigner:
         """Test signing with different elliptic curves."""
         # Test with SECP384R1 curve
         secp384r1_key = ec.generate_private_key(ec.SECP384R1())
-        secp384r1_signer = EccSigner(secp384r1_key, self.hash_generator)
+        secp384r1_signer = EccSigner(secp384r1_key, self.hasher)
         
         signature = secp384r1_signer.sign(self.bytes_message)
         assert isinstance(signature, bytes)
@@ -177,9 +177,9 @@ class TestEccSigner:
         
         # Verify the signature
         public_key = secp384r1_key.public_key()
-        message_digest = self.hash_generator.generate(self.bytes_message)
+        message_digest = self.hasher.hash(self.bytes_message)
         
-        public_key.verify(signature, message_digest, ec.ECDSA(utils.Prehashed(self.hash_generator.algorithm)))
+        public_key.verify(signature, message_digest, ec.ECDSA(utils.Prehashed(self.hasher.algorithm)))
 
     def test_sign_inherits_from_signer_base_class(self):
         """Test that EccSigner inherits from the Signer base class."""
@@ -190,14 +190,14 @@ class TestEccSigner:
     def test_sign_uses_correct_hash_algorithm(self):
         """Test that the signer uses the correct hash algorithm from the hash generator."""
         # Create a custom hash generator with SHA512
-        sha512_generator = HashGenerator(hashes.SHA512())
+        sha512_generator = Hasher(hashes.SHA512())
         sha512_signer = EccSigner(self.private_key, sha512_generator)
         
         signature = sha512_signer.sign(self.bytes_message)
         
         # Verify using the correct algorithm
         public_key = self.private_key.public_key()
-        message_digest = sha512_generator.generate(self.bytes_message)
+        message_digest = sha512_generator.hash(self.bytes_message)
         
         public_key.verify(signature, message_digest, ec.ECDSA(utils.Prehashed(sha512_generator.algorithm)))
 
