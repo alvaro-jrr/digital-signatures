@@ -1,6 +1,6 @@
 from cryptography.hazmat.primitives import hashes
 
-from digital_signatures.crypto.hash_generator import HashGenerator
+from digital_signatures.utils.hash_generator import HashGenerator
 from tests.fixtures.utils import fixture
 
 hash_generator = HashGenerator(hashes.SHA256())
