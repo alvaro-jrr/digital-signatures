@@ -18,6 +18,6 @@ class Signer(ABC):
     self.hash_generator = hash_generator
 
   @abstractmethod
-  def sign(self, message: bytes) -> bytes:
+  def sign(self, message: str | bytes) -> bytes:
     """Signs the message."""
     pass

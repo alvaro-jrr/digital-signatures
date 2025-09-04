@@ -1,5 +1,5 @@
 from cryptography.hazmat.primitives.asymmetric import ec, utils
-from cryptography.hazmat.primitives.asymmetric.ec import EllipticCurvePrivateKey
+from cryptography.hazmat.primitives.asymmetric.types import PrivateKeyTypes
 
 from digital_signatures.crypto.signer.base import Signer
 from digital_signatures.utils.hash_generator import HashGenerator
@@ -8,17 +8,21 @@ from digital_signatures.utils.hash_generator import HashGenerator
 class EccSigner(Signer):
   """This class is responsible for signing a message using Elliptic Curve Cryptography."""
 
-  private_key: EllipticCurvePrivateKey
+  private_key: PrivateKeyTypes
   """The private key to use for signing."""
 
   hash_generator: HashGenerator
   """The hash generator to generate the hash of the message."""
 
-  def __init__(self, private_key: EllipticCurvePrivateKey, hash_generator: HashGenerator):
+  def __init__(self, private_key: PrivateKeyTypes, hash_generator: HashGenerator):
+    # Validate the private key.
+    if not isinstance(private_key, ec.EllipticCurvePrivateKey):
+      raise ValueError("Private key must be an instance of EllipticCurvePrivateKey.")
+    
     self.private_key = private_key
     self.hash_generator = hash_generator
 
-  def sign(self, message: bytes) -> bytes:
+  def sign(self, message: str | bytes) -> bytes:
     """Signs the message."""
 
     # Generate the hash of the message.

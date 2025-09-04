@@ -14,7 +14,7 @@ class HashGenerator:
   def __init__(self, algorithm: hashes.HashAlgorithm):
     self.algorithm = algorithm
 
-  def generate(self, message) -> bytes:
+  def generate(self, message: str | bytes) -> bytes:
     """Generate the hash from the message."""
 
     # Handle bytes message.
