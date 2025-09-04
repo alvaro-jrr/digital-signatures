@@ -1,7 +1,7 @@
 [project]
 name = "digital-signatures"
 version = "0.1.0"
-description = "Add your description here"
+description = "A Python library for creating and verifying digital signatures"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
