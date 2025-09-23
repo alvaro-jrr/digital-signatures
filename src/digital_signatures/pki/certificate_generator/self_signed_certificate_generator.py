@@ -15,7 +15,7 @@ class SelfSignedCertificateGenerator(CertificateGenerator):
   """This class represents a self-signed certificate generator in the PKI."""
 
   def __init__(self, key_generator: KeyGenerator, hasher: Hasher):
-    super().__init__(key_generator, hasher)
+    super().__init__(key_generator, hasher, [])
 
   def generate(self, entity: Entity) -> tuple[PrivateKeyTypes, PublicKeyTypes, x509.Certificate]:
     """Generates a self-signed certificate for the entity."""

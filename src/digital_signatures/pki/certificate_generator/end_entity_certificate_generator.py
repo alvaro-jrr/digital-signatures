@@ -8,14 +8,16 @@ from cryptography.hazmat.primitives.asymmetric.types import (
 
 from digital_signatures.crypto.key_generator.base import KeyGenerator
 from digital_signatures.pki.certificate_generator.base import CertificateGenerator
+from digital_signatures.pki.certificate_generator.utils import append_crl_distribution_points
 from digital_signatures.pki.entity import Entity
 from digital_signatures.utils.hasher import Hasher
+
 
 class EndEntityCertificateGenerator(CertificateGenerator):
   """This class represents an end entity certificate generator in the PKI."""
 
-  def __init__(self, key_generator: KeyGenerator, hasher: Hasher):
-    super().__init__(key_generator, hasher)
+  def __init__(self, key_generator: KeyGenerator, hasher: Hasher, crl_urls: list[str] = []):
+    super().__init__(key_generator, hasher, crl_urls)
 
   def generate(
     self, 
@@ -33,7 +35,7 @@ class EndEntityCertificateGenerator(CertificateGenerator):
     expiration_date = creation_date + timedelta(days=365) 
 
     # Generate a certificate.
-    certificate = x509.CertificateBuilder().subject_name(
+    certificate_builder = x509.CertificateBuilder().subject_name(
       entity.to_name()
     ).issuer_name(
       intermediate_certificate.subject
@@ -75,6 +77,12 @@ class EndEntityCertificateGenerator(CertificateGenerator):
         intermediate_certificate.extensions.get_extension_for_class(x509.SubjectKeyIdentifier).value,
       ),
       critical=False,
-    ).sign(intermediate_private_key, self.hasher.algorithm)
+    )
+
+    # Add the CRL distribution points if any.
+    certificate_builder = append_crl_distribution_points(certificate_builder, self.crl_urls)
+
+    # Sign the certificate.
+    certificate = certificate_builder.sign(intermediate_private_key, self.hasher.algorithm)
 
     return ee_private_key, ee_public_key, certificate

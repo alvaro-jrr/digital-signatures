@@ -8,14 +8,17 @@ from cryptography.hazmat.primitives.asymmetric.types import (
 
 from digital_signatures.crypto.key_generator.base import KeyGenerator
 from digital_signatures.pki.certificate_generator.base import CertificateGenerator
+from digital_signatures.pki.certificate_generator.utils import (
+  append_crl_distribution_points,
+)
 from digital_signatures.pki.entity import Entity
 from digital_signatures.utils.hasher import Hasher
 
 class IntermediateCertificateGenerator(CertificateGenerator):
   """This class represents an intermediate certificate generator in the PKI."""
 
-  def __init__(self, key_generator: KeyGenerator, hasher: Hasher):
-    super().__init__(key_generator, hasher)
+  def __init__(self, key_generator: KeyGenerator, hasher: Hasher, crl_urls: list[str] = []):
+    super().__init__(key_generator, hasher, crl_urls)
 
   def generate(
     self,
@@ -33,7 +36,7 @@ class IntermediateCertificateGenerator(CertificateGenerator):
     expiration_date = creation_date + timedelta(days=365 * 3) 
 
     # Generate a certificate.
-    intermediate_certificate = x509.CertificateBuilder().subject_name(
+    intermediate_certificate_builder = x509.CertificateBuilder().subject_name(
       entity.to_name()
     ).issuer_name(
       root_certificate.subject
@@ -70,6 +73,12 @@ class IntermediateCertificateGenerator(CertificateGenerator):
         root_certificate.extensions.get_extension_for_class(x509.SubjectKeyIdentifier).value,
       ),
       critical=False,
-    ).sign(root_private_key, self.hasher.algorithm)
+    )
+
+    # Add the CRL distribution points if any.
+    intermediate_certificate_builder = append_crl_distribution_points(intermediate_certificate_builder, self.crl_urls)
+
+    # Sign the certificate.
+    intermediate_certificate = intermediate_certificate_builder.sign(root_private_key, self.hasher.algorithm)
 
     return intermediate_private_key, intermediate_public_key, intermediate_certificate

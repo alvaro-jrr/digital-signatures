@@ -19,9 +19,13 @@ class CertificateGenerator(ABC):
   hasher: Hasher
   """The hasher to use for generating the certificate."""
 
-  def __init__(self, key_generator: KeyGenerator, hasher: Hasher):
+  crl_urls: list[str]
+  """The Certificate Revocation List URLs to use for generating the certificate."""
+
+  def __init__(self, key_generator: KeyGenerator, hasher: Hasher, crl_urls: list[str] = []):
     self.key_generator = key_generator
     self.hasher = hasher
+    self.crl_urls = crl_urls
 
   @abstractmethod
   def generate(self, entity: Entity) -> tuple[PrivateKeyTypes, PublicKeyTypes, x509.Certificate]:

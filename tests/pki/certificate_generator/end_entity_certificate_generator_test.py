@@ -690,3 +690,202 @@ class TestEndEntityCertificateGenerator:
         aki_extension = certificate.extensions.get_extension_for_class(x509.AuthorityKeyIdentifier)
         assert aki_extension.critical is False
         assert aki_extension.value is not None
+
+    # CRL URLs Tests
+    def test_init_with_crl_urls(self):
+        """Test that EndEntityCertificateGenerator initializes correctly with CRL URLs."""
+        key_generator = EccKeyGenerator()
+        hasher = Hasher(hashes.SHA256())
+        crl_urls = ["http://ca.example.com/crl/end-entity.crl"]
+        
+        generator = EndEntityCertificateGenerator(key_generator, hasher, crl_urls)
+        
+        assert generator.key_generator == key_generator
+        assert generator.hasher == hasher
+        assert generator.crl_urls == crl_urls
+
+    def test_generate_without_crl_urls(self):
+        """Test that generate() works without CRL URLs (backward compatibility)."""
+        key_generator = EccKeyGenerator()
+        hasher = Hasher(hashes.SHA256())
+        generator = EndEntityCertificateGenerator(key_generator, hasher)
+        
+        # Create certificate chain
+        root_generator = RootCertificateGenerator(key_generator, hasher)
+        root_entity = Entity("Root CA", "root@ca.com", "US", "CA", "SF", "Root CA Org", "Root CA Unit")
+        root_private_key, root_public_key, root_certificate = root_generator.generate(root_entity)
+        
+        intermediate_generator = IntermediateCertificateGenerator(key_generator, hasher)
+        intermediate_entity = Entity("Intermediate CA", "intermediate@ca.com", "US", "CA", "SF", "Intermediate CA Org", "Intermediate CA Unit")
+        intermediate_private_key, intermediate_public_key, intermediate_certificate = intermediate_generator.generate(
+            intermediate_entity, root_certificate, root_private_key
+        )
+        
+        entity = Entity(
+            name="End Entity",
+            email="end@entity.com",
+            country="US",
+            state="CA",
+            locality="SF",
+            organization="End Entity Org",
+            organizational_unit="End Entity Unit"
+        )
+        
+        private_key, public_key, certificate = generator.generate(
+            entity, intermediate_certificate, intermediate_private_key
+        )
+        
+        assert isinstance(private_key, EllipticCurvePrivateKey)
+        assert isinstance(public_key, EllipticCurvePublicKey)
+        assert isinstance(certificate, x509.Certificate)
+        
+        # Should not have CRL Distribution Points extension
+        with pytest.raises(x509.ExtensionNotFound):
+            certificate.extensions.get_extension_for_class(x509.CRLDistributionPoints)
+
+    def test_generate_with_single_crl_url(self):
+        """Test certificate generation with a single CRL URL."""
+        key_generator = EccKeyGenerator()
+        hasher = Hasher(hashes.SHA256())
+        crl_urls = ["http://ca.example.com/crl/end-entity.crl"]
+        generator = EndEntityCertificateGenerator(key_generator, hasher, crl_urls)
+        
+        # Create certificate chain
+        root_generator = RootCertificateGenerator(key_generator, hasher)
+        root_entity = Entity("Root CA", "root@ca.com", "US", "CA", "SF", "Root CA Org", "Root CA Unit")
+        root_private_key, root_public_key, root_certificate = root_generator.generate(root_entity)
+        
+        intermediate_generator = IntermediateCertificateGenerator(key_generator, hasher)
+        intermediate_entity = Entity("Intermediate CA", "intermediate@ca.com", "US", "CA", "SF", "Intermediate CA Org", "Intermediate CA Unit")
+        intermediate_private_key, intermediate_public_key, intermediate_certificate = intermediate_generator.generate(
+            intermediate_entity, root_certificate, root_private_key
+        )
+        
+        entity = Entity(
+            name="End Entity",
+            email="end@entity.com",
+            country="US",
+            state="CA",
+            locality="SF",
+            organization="End Entity Org",
+            organizational_unit="End Entity Unit"
+        )
+        
+        private_key, public_key, certificate = generator.generate(
+            entity, intermediate_certificate, intermediate_private_key
+        )
+        
+        assert isinstance(private_key, EllipticCurvePrivateKey)
+        assert isinstance(public_key, EllipticCurvePublicKey)
+        assert isinstance(certificate, x509.Certificate)
+        
+        # Check CRL Distribution Points extension
+        crl_ext = certificate.extensions.get_extension_for_class(x509.CRLDistributionPoints)
+        assert crl_ext.critical is False
+        
+        # Verify the CRL URL is present
+        distribution_points = crl_ext.value
+        assert len(distribution_points) == 1
+        
+        dp = distribution_points[0]
+        assert dp.full_name is not None
+        assert len(dp.full_name) == 1
+        assert dp.full_name[0].value == "http://ca.example.com/crl/end-entity.crl"
+        assert dp.relative_name is None
+        assert dp.crl_issuer is None
+        assert dp.reasons is None
+
+    def test_generate_with_multiple_crl_urls(self):
+        """Test certificate generation with multiple CRL URLs."""
+        key_generator = EccKeyGenerator()
+        hasher = Hasher(hashes.SHA256())
+        crl_urls = [
+            "http://ca.example.com/crl/end-entity.crl",
+            "http://backup-ca.example.com/crl/end-entity.crl",
+            "ldap://ldap.example.com/cn=end-entity,ou=crl,dc=example,dc=com"
+        ]
+        generator = EndEntityCertificateGenerator(key_generator, hasher, crl_urls)
+        
+        # Create certificate chain
+        root_generator = RootCertificateGenerator(key_generator, hasher)
+        root_entity = Entity("Root CA", "root@ca.com", "US", "CA", "SF", "Root CA Org", "Root CA Unit")
+        root_private_key, root_public_key, root_certificate = root_generator.generate(root_entity)
+        
+        intermediate_generator = IntermediateCertificateGenerator(key_generator, hasher)
+        intermediate_entity = Entity("Intermediate CA", "intermediate@ca.com", "US", "CA", "SF", "Intermediate CA Org", "Intermediate CA Unit")
+        intermediate_private_key, intermediate_public_key, intermediate_certificate = intermediate_generator.generate(
+            intermediate_entity, root_certificate, root_private_key
+        )
+        
+        entity = Entity(
+            name="End Entity",
+            email="end@entity.com",
+            country="US",
+            state="CA",
+            locality="SF",
+            organization="End Entity Org",
+            organizational_unit="End Entity Unit"
+        )
+        
+        private_key, public_key, certificate = generator.generate(
+            entity, intermediate_certificate, intermediate_private_key
+        )
+        
+        assert isinstance(private_key, EllipticCurvePrivateKey)
+        assert isinstance(public_key, EllipticCurvePublicKey)
+        assert isinstance(certificate, x509.Certificate)
+        
+        # Check CRL Distribution Points extension
+        crl_ext = certificate.extensions.get_extension_for_class(x509.CRLDistributionPoints)
+        assert crl_ext.critical is False
+        
+        # Verify all CRL URLs are present (each in its own distribution point)
+        distribution_points = crl_ext.value
+        assert len(distribution_points) == 3
+        
+        # Check each distribution point has the expected URL
+        urls = []
+        for dp in distribution_points:
+            assert dp.full_name is not None
+            assert len(dp.full_name) == 1
+            urls.append(dp.full_name[0].value)
+        
+        assert "http://ca.example.com/crl/end-entity.crl" in urls
+        assert "http://backup-ca.example.com/crl/end-entity.crl" in urls
+        assert "ldap://ldap.example.com/cn=end-entity,ou=crl,dc=example,dc=com" in urls
+
+    def test_generate_crl_extension_not_critical(self):
+        """Test that CRL Distribution Points extension is not critical."""
+        key_generator = EccKeyGenerator()
+        hasher = Hasher(hashes.SHA256())
+        crl_urls = ["http://ca.example.com/crl/end-entity.crl"]
+        generator = EndEntityCertificateGenerator(key_generator, hasher, crl_urls)
+        
+        # Create certificate chain
+        root_generator = RootCertificateGenerator(key_generator, hasher)
+        root_entity = Entity("Root CA", "root@ca.com", "US", "CA", "SF", "Root CA Org", "Root CA Unit")
+        root_private_key, root_public_key, root_certificate = root_generator.generate(root_entity)
+        
+        intermediate_generator = IntermediateCertificateGenerator(key_generator, hasher)
+        intermediate_entity = Entity("Intermediate CA", "intermediate@ca.com", "US", "CA", "SF", "Intermediate CA Org", "Intermediate CA Unit")
+        intermediate_private_key, intermediate_public_key, intermediate_certificate = intermediate_generator.generate(
+            intermediate_entity, root_certificate, root_private_key
+        )
+        
+        entity = Entity(
+            name="End Entity",
+            email="end@entity.com",
+            country="US",
+            state="CA",
+            locality="SF",
+            organization="End Entity Org",
+            organizational_unit="End Entity Unit"
+        )
+        
+        private_key, public_key, certificate = generator.generate(
+            entity, intermediate_certificate, intermediate_private_key
+        )
+        
+        # Check that CRL Distribution Points extension is not critical
+        crl_ext = certificate.extensions.get_extension_for_class(x509.CRLDistributionPoints)
+        assert crl_ext.critical is False
