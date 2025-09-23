@@ -27,7 +27,7 @@ class Entity:
   organizational_unit: str | None
   """The organizational unit of the entity."""
 
-  def __init__(self, name: str, email: str, country: str, state: str, locality: str, organization: str | None, organizational_unit: str | None):
+  def __init__(self, name: str, email: str, country: str, state: str, locality: str, organization: str | None = None, organizational_unit: str | None = None):
     self.name = name
     self.email = email
     self.country = country
